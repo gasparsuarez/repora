@@ -75,10 +75,21 @@ func (w Workspace) Validate() error {
 
 // Preferences holds user-configurable behavior.
 type Preferences struct {
-	Theme            string      `yaml:"theme,omitempty"`
-	RefreshInterval  int         `yaml:"refresh_interval,omitempty"`
+	Theme string `yaml:"theme,omitempty"`
+	// RefreshInterval points at the automatic refresh interval in seconds.
+	// A nil pointer means the key was absent and the default applies; an
+	// explicit zero disables automatic refresh.
+	RefreshInterval  *int        `yaml:"refresh_interval,omitempty"`
 	StatusWorkers    int         `yaml:"status_workers,omitempty"`
 	DefaultWorkspace WorkspaceID `yaml:"default_workspace,omitempty"`
+}
+
+// RefreshIntervalSeconds returns the effective automatic refresh interval.
+func (p Preferences) RefreshIntervalSeconds() int {
+	if p.RefreshInterval == nil {
+		return DefaultRefreshInterval
+	}
+	return *p.RefreshInterval
 }
 
 // Normalized returns preferences with defaults applied and values clamped.
@@ -87,12 +98,19 @@ func (p Preferences) Normalized() Preferences {
 	if out.Theme == "" {
 		out.Theme = "dark"
 	}
-	if out.RefreshInterval < 0 {
-		out.RefreshInterval = 0
+
+	interval := DefaultRefreshInterval
+	if out.RefreshInterval != nil {
+		interval = *out.RefreshInterval
 	}
-	if out.RefreshInterval > 0 && out.RefreshInterval < 5 {
-		out.RefreshInterval = 5
+	switch {
+	case interval < 0:
+		interval = 0
+	case interval > 0 && interval < 5:
+		interval = 5
 	}
+	out.RefreshInterval = &interval
+
 	if out.StatusWorkers == 0 {
 		out.StatusWorkers = DefaultStatusWorkers
 	}

@@ -26,5 +26,10 @@ func (c *Config) Clone() *Config {
 		out.Workspaces[i] = copied
 	}
 
+	if c.Preferences.RefreshInterval != nil {
+		interval := *c.Preferences.RefreshInterval
+		out.Preferences.RefreshInterval = &interval
+	}
+
 	return &out
 }

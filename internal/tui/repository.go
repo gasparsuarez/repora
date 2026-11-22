@@ -23,6 +23,10 @@ const (
 
 var repoTabNames = []string{"Overview", "Changes", "Branches", "History"}
 
+// busyRefreshing is the transient row label shown between a completed write
+// and the fresh status that replaces its snapshot.
+const busyRefreshing = "refreshing"
+
 // changeItem is one selectable row in the Changes tab.
 type changeItem struct {
 	Path    string
@@ -70,6 +74,91 @@ func buildChanges(state domain.RepositoryState) []changeItem {
 	return items
 }
 
+// setChanges replaces the Changes list while keeping the cursor on the same
+// path. If the entry moved between sections, the cursor follows it; if it
+// disappeared, the previous index is clamped to the new list.
+func (m *Model) setChanges(next []changeItem) {
+	path, section := "", ""
+	if m.changeIndex >= 0 && m.changeIndex < len(m.changes) {
+		path = m.changes[m.changeIndex].Path
+		section = m.changes[m.changeIndex].Section
+	}
+
+	m.changes = next
+	m.changeIndex = changeIndexAfter(next, path, section, m.changeIndex)
+}
+
+func changeIndexAfter(items []changeItem, path, section string, fallback int) int {
+	if path != "" {
+		for i, item := range items {
+			if item.Path == path && item.Section == section {
+				return i
+			}
+		}
+		for i, item := range items {
+			if item.Path == path {
+				return i
+			}
+		}
+	}
+	return clampIndex(fallback, len(items))
+}
+
+// applyDetail replaces branches, history, and remotes while preserving the
+// selected branch by name and the selected commit by hash.
+func (m *Model) applyDetail(detail app.RepositoryDetail) {
+	branchName := ""
+	if m.branchIndex >= 0 && m.branchIndex < len(m.detail.Branches) {
+		branchName = m.detail.Branches[m.branchIndex].Name
+	}
+	commitHash := ""
+	if m.historyIndex >= 0 && m.historyIndex < len(m.detail.Commits) {
+		commitHash = m.detail.Commits[m.historyIndex].Hash
+	}
+
+	oldBranch := m.branchIndex
+	oldHistory := m.historyIndex
+	m.detail = detail
+
+	if branchName != "" {
+		if index := indexOfBranch(detail.Branches, branchName); index >= 0 {
+			m.branchIndex = index
+		} else {
+			m.branchIndex = clampIndex(oldBranch, len(detail.Branches))
+		}
+	} else {
+		m.branchIndex = clampIndex(oldBranch, len(detail.Branches))
+	}
+
+	if commitHash != "" {
+		if index := indexOfCommit(detail.Commits, commitHash); index >= 0 {
+			m.historyIndex = index
+		} else {
+			m.historyIndex = clampIndex(oldHistory, len(detail.Commits))
+		}
+	} else {
+		m.historyIndex = clampIndex(oldHistory, len(detail.Commits))
+	}
+}
+
+func indexOfBranch(branches []domain.Branch, name string) int {
+	for i, branch := range branches {
+		if branch.Name == name {
+			return i
+		}
+	}
+	return -1
+}
+
+func indexOfCommit(commits []domain.Commit, hash string) int {
+	for i, commit := range commits {
+		if commit.Hash == hash {
+			return i
+		}
+	}
+	return -1
+}
+
 func (m *Model) currentRow() *repoRow {
 	if m.rowIndex < 0 || m.rowIndex >= len(m.rows) {
 		return nil
@@ -110,7 +199,7 @@ func (m *Model) openRepository() tea.Cmd {
 	m.notice = ""
 	m.noticeError = false
 
-	return m.loadDetail()
+	return tea.Batch(m.loadDetail(), m.refreshCurrentRepository())
 }
 
 func (m *Model) closeRepository() {
@@ -188,24 +277,50 @@ func (m *Model) refreshCurrentRepository() tea.Cmd {
 
 // refreshRepoID re-reads a single repository and updates its row.
 func (m *Model) refreshRepoID(id domain.RepositoryID) tea.Cmd {
+	return m.refreshRepoIDMode(id, true)
+}
+
+// refreshRepoIDQuiet refreshes a repository without showing a spinner when a
+// snapshot is already available.
+func (m *Model) refreshRepoIDQuiet(id domain.RepositoryID) tea.Cmd {
+	return m.refreshRepoIDMode(id, false)
+}
+
+func (m *Model) refreshRepoIDMode(id domain.RepositoryID, markLoading bool) tea.Cmd {
 	repo, ok := m.cfg.RepositoryByID(id)
 	if !ok || m.status == nil {
+		m.clearRefreshingBusy(id)
 		return nil
 	}
 
-	for i := range m.rows {
-		if m.rows[i].repo.ID == id {
-			m.rows[i].loading = true
-		}
+	row := m.repoRowByID(id)
+	if row != nil && (markLoading || row.state.RepositoryID == "") {
+		row.loading = true
 	}
 
+	seq := m.nextRepoSeq(id)
 	svc := m.status
 	gen := m.gen
 
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		return statusMsg{gen: gen, state: svc.Status(ctx, repo)}
+		return statusMsg{gen: gen, seq: seq, state: svc.Status(ctx, repo)}
+	}
+}
+
+// clearRefreshingBusy releases the transient post-write busy state when no
+// status refresh can be scheduled.
+func (m *Model) clearRefreshingBusy(id domain.RepositoryID) {
+	for i := range m.rows {
+		if m.rows[i].repo.ID != id {
+			continue
+		}
+		m.rows[i].loading = false
+		if m.rows[i].busy && m.rows[i].busyLabel == busyRefreshing {
+			m.rows[i].busy = false
+			m.rows[i].busyLabel = ""
+		}
 	}
 }
 
@@ -244,8 +359,24 @@ func (m *Model) handleRepositoryKey(key string) tea.Cmd {
 
 	repo, hasRepo := m.currentRepo()
 
+	// Only the active tab owns its mutating keys. This prevents Space from
+	// staging a hidden change or d from deleting a branch while another tab is
+	// visible.
+	writeKey := false
 	switch key {
-	case "f", "p", "P", "c", "n", "A", "u", " ":
+	case "f", "p", "P":
+		writeKey = hasRepo
+	case "c", "A", "u", " ":
+		writeKey = hasRepo && m.repoTab == tabChanges
+	case "n", "d":
+		writeKey = hasRepo && m.repoTab == tabBranches
+	}
+	if writeKey {
+		if row := m.currentRow(); row != nil && row.busy {
+			m.notice = "operation in progress: " + row.busyLabel
+			m.noticeError = false
+			return nil
+		}
 		if !m.gitReady() {
 			return nil
 		}
@@ -280,6 +411,9 @@ func (m *Model) handleRepositoryKey(key string) tea.Cmd {
 		m.repoTab = tabBranches
 
 	case "d":
+		if m.repoTab != tabBranches {
+			return nil
+		}
 		m.openDeleteBranchConfirm()
 		return nil
 
@@ -290,19 +424,28 @@ func (m *Model) handleRepositoryKey(key string) tea.Cmd {
 		return tea.Batch(m.refreshCurrentRepository(), m.loadDetail())
 
 	case "c":
+		if m.repoTab != tabChanges {
+			return nil
+		}
 		return m.openCommitPrompt()
 	case "n":
+		if m.repoTab != tabBranches {
+			return nil
+		}
 		return m.openBranchPrompt()
 	case " ":
+		if m.repoTab != tabChanges {
+			return nil
+		}
 		return m.stageSelected()
 	case "A":
-		if hasRepo {
+		if hasRepo && m.repoTab == tabChanges {
 			return m.runWrite("stage all", repo, func(ctx context.Context) error {
 				return m.git.StageAll(ctx, repo)
 			})
 		}
 	case "u":
-		if hasRepo {
+		if hasRepo && m.repoTab == tabChanges {
 			return m.runWrite("unstage all", repo, func(ctx context.Context) error {
 				return m.git.UnstageAll(ctx, repo)
 			})

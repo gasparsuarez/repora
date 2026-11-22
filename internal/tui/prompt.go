@@ -222,6 +222,12 @@ func (m *Model) submitPrompt() tea.Cmd {
 
 // runWrite executes a mutating operation and reports the result as a message.
 func (m *Model) runWrite(label string, repo domain.Repository, fn func(context.Context) error) tea.Cmd {
+	if row := m.repoRowByID(repo.ID); row != nil && row.busy {
+		m.notice = "operation in progress: " + row.busyLabel
+		m.noticeError = false
+		return nil
+	}
+
 	m.notice = label + "…"
 	m.noticeError = false
 	m.setRowBusy(repo.ID, label)

@@ -52,6 +52,34 @@ func TestSaveRoundTrip(t *testing.T) {
 	}
 }
 
+func TestSavePreservesExplicitZeroRefreshInterval(t *testing.T) {
+	dir := t.TempDir()
+	path := writeConfig(t, dir, `version: 1
+repositories: []
+workspaces: []
+preferences:
+  refresh_interval: 0
+`)
+
+	cfg := loadConfig(t, path)
+	if err := Save(path, cfg); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if !strings.Contains(string(raw), "refresh_interval: 0") {
+		t.Errorf("explicit zero was not preserved:\n%s", raw)
+	}
+
+	reloaded := loadConfig(t, path)
+	if got := reloaded.Preferences.RefreshIntervalSeconds(); got != 0 {
+		t.Errorf("interval = %d after round trip, want 0", got)
+	}
+}
+
 func TestSavePreservesUnknownTopLevelAndNestedFields(t *testing.T) {
 	dir := t.TempDir()
 	path := writeConfig(t, dir, `version: 1

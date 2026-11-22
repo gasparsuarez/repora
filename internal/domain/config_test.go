@@ -127,6 +127,20 @@ func TestConfigRepositoriesOf(t *testing.T) {
 	}
 }
 
+func TestConfigCloneDeepCopiesPreferences(t *testing.T) {
+	interval := 30
+	cfg := &Config{Version: 1, Preferences: Preferences{RefreshInterval: &interval}}
+
+	cloned := cfg.Clone()
+	if cloned.Preferences.RefreshInterval == cfg.Preferences.RefreshInterval {
+		t.Fatal("clone shares the refresh interval pointer")
+	}
+	*cloned.Preferences.RefreshInterval = 5
+	if interval != 30 {
+		t.Errorf("clone mutation changed the original: %d", interval)
+	}
+}
+
 func TestPreferencesNormalized(t *testing.T) {
 	got := Preferences{}.Normalized()
 	if got.Theme != "dark" {
@@ -135,13 +149,23 @@ func TestPreferencesNormalized(t *testing.T) {
 	if got.StatusWorkers != DefaultStatusWorkers {
 		t.Errorf("workers = %d, want %d", got.StatusWorkers, DefaultStatusWorkers)
 	}
+	if got.RefreshIntervalSeconds() != DefaultRefreshInterval {
+		t.Errorf("interval = %d, want default %d", got.RefreshIntervalSeconds(), DefaultRefreshInterval)
+	}
 
-	got = Preferences{StatusWorkers: 100, RefreshInterval: 1}.Normalized()
+	interval := 1
+	got = Preferences{StatusWorkers: 100, RefreshInterval: &interval}.Normalized()
 	if got.StatusWorkers != 16 {
 		t.Errorf("workers = %d, want clamp to 16", got.StatusWorkers)
 	}
-	if got.RefreshInterval != 5 {
-		t.Errorf("interval = %d, want clamp to 5", got.RefreshInterval)
+	if got.RefreshIntervalSeconds() != 5 {
+		t.Errorf("interval = %d, want clamp to 5", got.RefreshIntervalSeconds())
+	}
+
+	disabled := 0
+	got = Preferences{RefreshInterval: &disabled}.Normalized()
+	if got.RefreshIntervalSeconds() != 0 {
+		t.Errorf("interval = %d, want 0 to disable", got.RefreshIntervalSeconds())
 	}
 }
 

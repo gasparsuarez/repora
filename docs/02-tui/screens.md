@@ -26,9 +26,11 @@ Per workspace:
   synchronized (ahead/behind/diverged), errors, clean.
 - Loading state while the background refresh is in flight.
 
-The explorer refreshes every repository referenced by a workspace once, using the bounded
-status service, and caches the results for the session. Counts are derived from
-`RepositoryState.Class()`; they are never hardcoded and omitted when zero.
+The explorer refreshes every repository referenced by a workspace, using the bounded
+status service, and caches the results for the session. The automatic refresh timer
+updates those summaries in place without clearing the cache or showing a spinner for
+already-loaded cards. Counts are derived from `RepositoryState.Class()`; they are never
+hardcoded and omitted when zero.
 
 ### Layout
 

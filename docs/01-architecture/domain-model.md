@@ -300,9 +300,9 @@ type Config struct {
 }
 
 type Preferences struct {
-    Theme           string // "dark" (default) | "light"
-    RefreshInterval int    // seconds; 0 disables automatic refresh
-    StatusWorkers   int    // default 4
+    Theme            string // "dark" (default) | "light"
+    RefreshInterval  *int   // nil = default 30; 0 disables automatic refresh
+    StatusWorkers    int    // default 4
     DefaultWorkspace WorkspaceID // optional
 }
 ```
