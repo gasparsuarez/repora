@@ -75,3 +75,13 @@ First public, experimental release.
 - Remote branches are read-only.
 - No stash, rebase, cherry-pick, or worktrees.
 - macOS and Linux only.
+
+## [0.1.3] - 2026-11-22
+
+### Fixed
+
+- Automatic refresh now runs on Home, workspace, and repository screens at the
+  configured interval.
+- Changes no longer remain stale after staging or committing; out-of-order status
+  snapshots are discarded.
+- Selection is preserved across refresh, and mutating keys are scoped to the active tab.
