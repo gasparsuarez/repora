@@ -79,6 +79,14 @@ type writeDoneMsg struct {
 	err    error
 }
 
+// pullRequestDoneMsg reports the result of creating a pull request.
+type pullRequestDoneMsg struct {
+	gen    int
+	repoID domain.RepositoryID
+	pr     domain.PullRequest
+	err    error
+}
+
 // noticeExpiredMsg clears a success notice after its display window.
 type noticeExpiredMsg struct {
 	seq int

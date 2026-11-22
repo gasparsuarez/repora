@@ -64,9 +64,37 @@ var (
 	// ErrNoRemote is returned when an operation requires a configured remote.
 	ErrNoRemote = errors.New("no remote configured")
 
+	// ErrRemoteNotFound is returned when a named remote is not configured.
+	ErrRemoteNotFound = errors.New("remote not found")
+
 	// ErrNothingToStage is returned when a stage request has no paths.
 	ErrNothingToStage = errors.New("nothing to stage")
 
 	// ErrCurrentBranch is returned when trying to delete the checked-out branch.
 	ErrCurrentBranch = errors.New("cannot delete the current branch")
+
+	// ErrInvalidPullRequest is returned when a pull request request is incomplete
+	// or inconsistent.
+	ErrInvalidPullRequest = errors.New("invalid pull request")
+
+	// ErrBranchNotPushed is returned when the head branch is not available on the
+	// selected remote at the local commit.
+	ErrBranchNotPushed = errors.New("branch is not pushed to the remote")
+
+	// ErrBaseBranchNotFound is returned when the base branch is not present on
+	// the selected remote.
+	ErrBaseBranchNotFound = errors.New("base branch not found on the remote")
+
+	// ErrUnsupportedRemote is returned when a remote URL is not a supported
+	// hosting-provider URL.
+	ErrUnsupportedRemote = errors.New("unsupported remote URL")
+
+	// ErrForgeUnavailable is returned when the hosting-provider CLI is missing.
+	ErrForgeUnavailable = errors.New("forge CLI is unavailable")
+
+	// ErrForgeAuth is returned when the hosting-provider CLI is not authenticated.
+	ErrForgeAuth = errors.New("forge authentication is required")
+
+	// ErrForgeRejected is returned when the hosting provider rejects the request.
+	ErrForgeRejected = errors.New("forge rejected the request")
 )

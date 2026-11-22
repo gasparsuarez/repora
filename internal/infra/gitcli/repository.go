@@ -85,6 +85,22 @@ func (r *Repository) Status(ctx context.Context, repo domain.Repository) domain.
 	return parsed
 }
 
+// RefOID resolves a fully qualified ref to its object id.
+func (r *Repository) RefOID(ctx context.Context, repo domain.Repository, ref string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, ReadTimeout)
+	defer cancel()
+
+	stdout, stderr, err := r.ex.Execute(ctx, repo.Path, "rev-parse", "--verify", "--quiet", ref)
+	if err != nil {
+		return "", fmt.Errorf("resolving %s in %s: %w", ref, repo.Path, exitSummary(err, stderr))
+	}
+	oid := strings.TrimSpace(string(stdout))
+	if oid == "" {
+		return "", fmt.Errorf("resolving %s in %s: empty object id", ref, repo.Path)
+	}
+	return oid, nil
+}
+
 // IsRepository reports whether path is a usable Git working tree.
 func (r *Repository) IsRepository(ctx context.Context, path string) bool {
 	ctx, cancel := context.WithTimeout(ctx, ReadTimeout)

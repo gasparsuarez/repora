@@ -41,6 +41,8 @@ between both, and never move code on disk.
 - **Repository View** with Overview, Changes, Branches and History.
 - **Daily Git operations** scoped to the selected repository: stage, unstage, commit,
   create/checkout/delete branch, fetch, pull and push.
+- **Pull request creation** from the Branches tab with origin/base selectors, through the
+  authenticated GitHub CLI.
 - **Diff and commit review** without leaving the terminal.
 - **Configuration editing** from inside the app: `,` opens your editor and reloads on exit.
 - **Safe by design**: no shell interpolation, no force push, no reset, no clean.

@@ -36,6 +36,10 @@ func (fakeStatusGit) Remotes(_ context.Context, _ domain.Repository) ([]domain.R
 	return nil, nil
 }
 
+func (fakeStatusGit) RefOID(_ context.Context, _ domain.Repository, ref string) (string, error) {
+	return ref, nil
+}
+
 func (fakeStatusGit) Diff(_ context.Context, _ domain.Repository, _ domain.DiffTarget, _ string) (string, error) {
 	return "", nil
 }

@@ -20,6 +20,9 @@ func (m *Model) View() string {
 	if m.prompt.active() {
 		return m.renderPrompt()
 	}
+	if m.prForm.active {
+		return m.renderPullRequestForm()
+	}
 	if m.confirm.active {
 		return m.renderConfirm()
 	}
@@ -360,6 +363,7 @@ func (m *Model) renderHelp() string {
 		"  A / u        stage all / unstage all (Changes)",
 		"  c            commit (Changes)",
 		"  n / d        new / delete branch (Branches)",
+		"  o            create pull request (Branches)",
 		"  Enter        diff, commit details, or checkout",
 		"  f / p / P    fetch / pull / push",
 		"  e            show the last error in full",

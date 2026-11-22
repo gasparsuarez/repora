@@ -22,6 +22,9 @@ type GitPort interface {
 	// Remotes lists configured remotes.
 	Remotes(ctx context.Context, repo Repository) ([]Remote, error)
 
+	// RefOID resolves a fully qualified ref to its object id.
+	RefOID(ctx context.Context, repo Repository, ref string) (string, error)
+
 	// Diff returns a text diff for a single path, or for the whole worktree when
 	// path is empty.
 	Diff(ctx context.Context, repo Repository, target DiffTarget, path string) (string, error)

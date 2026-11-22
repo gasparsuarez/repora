@@ -196,6 +196,7 @@ func (m *Model) openRepository() tea.Cmd {
 	m.diffOpen = false
 	m.diffLoading = false
 	m.commitOpen = false
+	m.discardPullRequestForm()
 	m.notice = ""
 	m.noticeError = false
 
@@ -206,6 +207,7 @@ func (m *Model) closeRepository() {
 	m.screen = screenWorkspace
 	m.diffOpen = false
 	m.commitOpen = false
+	m.discardPullRequestForm()
 	m.detail = app.RepositoryDetail{}
 	m.detailLoading = false
 	m.detailGen++
@@ -358,6 +360,15 @@ func (m *Model) handleRepositoryKey(key string) tea.Cmd {
 	}
 
 	repo, hasRepo := m.currentRepo()
+
+	if key == "o" && m.repoTab == tabBranches {
+		if row := m.currentRow(); row != nil && row.busy {
+			m.notice = "operation in progress: " + row.busyLabel
+			m.noticeError = false
+			return nil
+		}
+		return m.openPullRequestForm()
+	}
 
 	// Only the active tab owns its mutating keys. This prevents Space from
 	// staging a hidden change or d from deleting a branch while another tab is

@@ -1,0 +1,24 @@
+
+  ◈  Repora   WORKSPACE MANAGER
+  ────────────────────────────────────────────────────────────────────────────
+  WORKSPACES  /  PRODUCT X  /  API  /  BRANCHES
+
+  ╭──────────────────────────────────────────────────────────────────────────╮
+  │ NEW PULL REQUEST                                                         │
+  │   FROM        API · feature/retry                                        │
+  │                                                                          │
+  │   ORIGIN      ◀ origin ▶                                                 │
+  │   BASE        ◀ main ▶                                                   │
+  │                                                                          │
+  │ › TITLE       Add retry logic                                            │
+  │   DESCRIPTION                                                            │
+  │   ┃ Describe the change…                                                 │
+  │   ┃                                                                      │
+  │   ┃                                                                      │
+  │   ┃                                                                      │
+  │                                                                          │
+  │   Bases come from the last fetch. Press f in Branches to refresh.        │
+  ╰──────────────────────────────────────────────────────────────────────────╯
+
+
+  Tab Next   Ctrl+S Create   Esc Cancel

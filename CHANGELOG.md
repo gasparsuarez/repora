@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-22
+
+### Added
+
+- Create GitHub pull requests from the Branches tab (`o`): choose the origin and base
+  branch, edit the title and description, and create the PR through the authenticated
+  GitHub CLI.
+- Branch validation warns when the local head differs from the remote, and failed requests
+  keep the form and its input.
+
 ### Fixed
 
 - The install script honours an explicit `--dir` even when Repora is already installed

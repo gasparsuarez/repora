@@ -149,9 +149,18 @@ action bar and by a muted appearance in Help.
 |---|---|---|
 | `Enter` | Checkout selected local branch | Disabled on remote rows |
 | `n` | New branch (modal) | |
+| `o` | Create pull request (modal) | GitHub remotes only |
+| `d` | Delete branch (modal) | Refused for the current branch and unmerged branches |
 | `r` | Refresh branch list | |
 
-Branch deletion is not bound in v0.1.
+## Pull Request Form
+
+| Key | Action |
+|---|---|
+| `Tab` / `Shift+Tab` | Next / previous field |
+| `←` / `→` | Change origin or base branch |
+| `Ctrl+S` | Create pull request |
+| `Esc` | Cancel the form or an in-flight request |
 
 ---
 

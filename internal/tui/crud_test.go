@@ -55,6 +55,9 @@ func (g *stubGit) Log(context.Context, domain.Repository, int) ([]domain.Commit,
 func (g *stubGit) Remotes(context.Context, domain.Repository) ([]domain.Remote, error) {
 	return nil, nil
 }
+func (g *stubGit) RefOID(context.Context, domain.Repository, string) (string, error) {
+	return "0000000", nil
+}
 func (g *stubGit) Diff(context.Context, domain.Repository, domain.DiffTarget, string) (string, error) {
 	return "", nil
 }

@@ -39,6 +39,18 @@ func Explain(err error) string {
 		return "Authentication is required. Repora runs Git non-interactively; authenticate once in a terminal (SSH agent or credential helper)."
 	case strings.Contains(msg, "nothing to commit"):
 		return "There are no staged changes to commit."
+	case strings.Contains(msg, "branch is not pushed"), strings.Contains(msg, "not pushed to the remote"):
+		return "Push the branch first with P in the Branches tab, then create the pull request."
+	case strings.Contains(msg, "base branch not found"):
+		return "Fetch the remote first (f in Branches) and choose a base branch that exists there."
+	case strings.Contains(msg, "forge authentication"), strings.Contains(msg, "gh auth login"):
+		return "Authenticate the GitHub CLI once with `gh auth login`, then retry."
+	case strings.Contains(msg, "forge cli is unavailable"):
+		return "Install the GitHub CLI (https://cli.github.com) and run `gh auth login`."
+	case strings.Contains(msg, "unsupported remote"):
+		return "Pull request creation currently requires a GitHub remote (https or ssh)."
+	case strings.Contains(msg, "pull request already exists"):
+		return "A pull request already exists for this branch and base. Open it on GitHub or change the base."
 	case strings.Contains(msg, "already exists"):
 		return "That branch name already exists. Choose another name or check it out instead."
 	default:
