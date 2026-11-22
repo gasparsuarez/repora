@@ -7,13 +7,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-11-22
+
 ### Added
 
-- Homebrew cask publishing for macOS. Install with
+- Homebrew cask publishing. Install with
   `brew install --cask gasparsuarez/tap/repora` and update with
   `brew upgrade --cask repora`.
 - A cross-platform `scripts/install.sh` that detects the platform, verifies
   `SHA256SUMS`, and installs or updates `~/.local/bin/repora`.
+
+## [0.1.3] - 2026-11-22
+
+### Fixed
+
+- Automatic refresh now runs on Home, workspace, and repository screens at the
+  configured interval.
+- Changes no longer remain stale after staging or committing; out-of-order status
+  snapshots are discarded.
+- Selection is preserved across refresh, and mutating keys are scoped to the active tab.
 
 ## [0.1.2] - 2026-11-18
 
@@ -83,13 +95,3 @@ First public, experimental release.
 - Remote branches are read-only.
 - No stash, rebase, cherry-pick, or worktrees.
 - macOS and Linux only.
-
-## [0.1.3] - 2026-11-22
-
-### Fixed
-
-- Automatic refresh now runs on Home, workspace, and repository screens at the
-  configured interval.
-- Changes no longer remain stale after staging or committing; out-of-order status
-  snapshots are discarded.
-- Selection is preserved across refresh, and mutating keys are scoped to the active tab.
