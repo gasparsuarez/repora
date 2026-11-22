@@ -20,6 +20,8 @@ BINARY="repora"
 version="${REPORA_VERSION:-}"
 install_dir="${REPORA_INSTALL_DIR:-${HOME}/.local/bin}"
 force="${REPORA_FORCE:-0}"
+explicit_dir=0
+[ -n "${REPORA_INSTALL_DIR:-}" ] && explicit_dir=1
 
 usage() {
 	cat <<EOF
@@ -60,6 +62,7 @@ while [ "$#" -gt 0 ]; do
 	--dir)
 		[ "$#" -ge 2 ] || fail "--dir needs a path"
 		install_dir="$2"
+		explicit_dir=1
 		shift 2
 		;;
 	--force)
@@ -110,7 +113,7 @@ v*) tag="$version" ;;
 esac
 version_number="${tag#v}"
 
-if [ "$force" != "1" ] && command -v "$BINARY" >/dev/null 2>&1; then
+if [ "$force" != "1" ] && [ "$explicit_dir" != "1" ] && command -v "$BINARY" >/dev/null 2>&1; then
 	current="$(command -v "$BINARY")"
 	case "$current" in
 	*/Cellar/* | */homebrew/*)
