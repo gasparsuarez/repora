@@ -379,7 +379,7 @@ Remote
   origin/develop
   origin/feature/pay-flow
 
-[n] New branch   [Enter] Checkout   [Esc] Back
+[n] New branch   [Enter] Checkout   [o] PR   [Esc] Back
 ```
 
 #### Actions
@@ -388,6 +388,7 @@ Remote
 |---|---|---|
 | Create branch | `n` | Prompt for name; `Enter` creates and checks out |
 | Checkout | `Enter` | Refuses if uncommitted changes conflict; Git error surfaced |
+| Create pull request | `o` | Opens the PR form for the selected branch |
 | Delete branch | `d` | Confirmation required; Git refuses unmerged branches |
 | Refresh | `r` | — |
 
@@ -400,7 +401,38 @@ Rules:
 
 ---
 
-### 3.4 History
+### 3.4 New Pull Request
+
+`o` on a branch opens a modal form:
+
+```text
+FROM        API · feature/retry
+ORIGIN      ◀ origin ▶
+BASE        ◀ main ▶
+TITLE       Add retry logic
+DESCRIPTION
+  ┃ Describe the change…
+```
+
+Rules:
+
+- `FROM` is the selected branch; `o` on a remote branch uses its branch name and remote.
+- `ORIGIN` lists configured remotes. Changing it reloads `BASE`.
+- `BASE` lists remote branches for the chosen origin, excluding the head branch.
+- The default base is the remote's `HEAD`, falling back to `main`, then `master`.
+- The title is prefilled from the head branch's last commit subject.
+- `Tab`/`Shift+Tab` move between fields; `←/→` change selectors; `Ctrl+S` creates;
+  `Esc` cancels (or cancels an in-flight request).
+- A local branch that is not pushed to the selected origin shows a warning. The create
+  action returns an actionable error until it is pushed with `P`.
+- The description is optional and multiline.
+- The automatic refresh is paused while the form is open.
+- A failed request keeps the form and its input open.
+- Success closes the form and shows `PR #N created` with the URL.
+
+---
+
+### 3.5 History
 
 #### Data
 

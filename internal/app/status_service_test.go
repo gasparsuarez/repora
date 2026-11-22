@@ -53,6 +53,10 @@ func (f *fakeGit) Remotes(_ context.Context, repo domain.Repository) ([]domain.R
 	return nil, nil
 }
 
+func (f *fakeGit) RefOID(_ context.Context, repo domain.Repository, ref string) (string, error) {
+	return ref, nil
+}
+
 func (f *fakeGit) Diff(_ context.Context, repo domain.Repository, target domain.DiffTarget, path string) (string, error) {
 	return "", nil
 }

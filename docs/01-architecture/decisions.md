@@ -463,3 +463,38 @@ decision that requires seeing conflict state.
 **Alternatives rejected:** parsing human error strings only (misses the cause before an
 action), auto-aborting (destructive and surprising), ignoring the state (what produced the
 bad experience in the first place).
+
+---
+
+## D-023 — Pull request creation delegates to the authenticated GitHub CLI
+
+**Status:** Accepted
+
+**Context:** Creating a pull request needs an authenticated hosting-provider API. Storing
+tokens in Repora's configuration would break the rule that configuration never contains
+credentials. Reimplementing GitHub authentication and its token lifecycle adds a large
+security surface for a single operation.
+
+**Decision:** Pull request creation uses the installed GitHub CLI through `gh api` with an
+argument vector and JSON on stdin. Repora never stores forge credentials and never reads
+tokens directly. The provider is behind `domain.ForgePort`, so another adapter can be added
+later without changing the TUI or application service.
+
+GitHub is the only provider in v0.2. The feature is limited to pull requests inside the
+same repository; forks and remote repository creation are out of scope.
+
+**Consequences:**
+
+- `gh` must be installed and authenticated for the feature; the UI surfaces an actionable
+  error when it is missing.
+- Network work happens only after the user explicitly submits the pull request form. No
+  provider call runs during startup, navigation, or refresh.
+- The head branch must already be pushed to the selected remote at the local commit. Repora
+  never pushes implicitly as part of creating a pull request.
+- The GitHub CLI can target GitHub Enterprise through its own authentication and
+  `--hostname`.
+
+**Alternatives rejected:** unauthenticated HTTP (impossible for writes), storing a PAT in
+configuration (violates the configuration rules), running `gh pr create` with interactive
+prompts (the TUI cannot host them), automatic push before creating the PR (an implicit
+network write).

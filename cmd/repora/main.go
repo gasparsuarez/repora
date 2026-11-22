@@ -15,6 +15,7 @@ import (
 	"github.com/gasparsuarez/repora/internal/domain"
 	"github.com/gasparsuarez/repora/internal/infra/config"
 	"github.com/gasparsuarez/repora/internal/infra/gitcli"
+	githubforge "github.com/gasparsuarez/repora/internal/infra/github"
 	"github.com/gasparsuarez/repora/internal/tui"
 )
 
@@ -102,6 +103,7 @@ func run(args []string) int {
 	status := app.NewStatusService(gitRepo, cfg.Preferences.StatusWorkers)
 	repositories := app.NewRepositoryService(gitRepo, store)
 	gitService := app.NewGitService(gitRepo, app.NewLocks())
+	pullRequests := app.NewPullRequestService(gitRepo, githubforge.NewClient(nil))
 	workspaces := app.NewWorkspaceService(store)
 
 	if *debugStatus != "" {
@@ -120,16 +122,17 @@ func run(args []string) int {
 	}
 
 	model := tui.New(tui.Deps{
-		Config:     cfg,
-		ConfigPath: configPath,
-		Version:    version,
-		Status:     status,
-		Repos:      repositories,
-		Git:        gitService,
-		Workspaces: workspaces,
-		Warnings:   warnings,
-		NoColor:    *noColor,
-		Reload:     reload,
+		Config:       cfg,
+		ConfigPath:   configPath,
+		Version:      version,
+		Status:       status,
+		Repos:        repositories,
+		Git:          gitService,
+		PullRequests: pullRequests,
+		Workspaces:   workspaces,
+		Warnings:     warnings,
+		NoColor:      *noColor,
+		Reload:       reload,
 	})
 	program := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := program.Run(); err != nil {

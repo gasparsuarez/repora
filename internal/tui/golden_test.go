@@ -273,6 +273,28 @@ func promptGoldenModel(t *testing.T, width, height int) *Model {
 	return m
 }
 
+func pullRequestGoldenModel(t *testing.T, width, height int) *Model {
+	t.Helper()
+
+	m, _ := pullRequestModelAt(t, width, height)
+	m.Update(key('o'))
+	return m
+}
+
+func TestGoldenPullRequest(t *testing.T) {
+	for _, size := range []struct {
+		name          string
+		width, height int
+	}{
+		{"80x24", 80, 24},
+		{"120x40", 120, 40},
+	} {
+		t.Run(size.name, func(t *testing.T) {
+			assertGolden(t, "pull_request_"+size.name, pullRequestGoldenModel(t, size.width, size.height))
+		})
+	}
+}
+
 func TestGoldenPrompt(t *testing.T) {
 	for _, size := range []struct {
 		name          string

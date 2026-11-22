@@ -28,9 +28,10 @@ type Commit struct {
 
 // Remote is a configured Git remote.
 type Remote struct {
-	Name     string
-	FetchURL string
-	PushURL  string
+	Name          string
+	FetchURL      string
+	PushURL       string
+	DefaultBranch string // from refs/remotes/<name>/HEAD, when available
 }
 
 // DiffTarget selects which side of the working tree a diff describes.

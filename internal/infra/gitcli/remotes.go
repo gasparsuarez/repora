@@ -18,7 +18,22 @@ func (r *Repository) Remotes(ctx context.Context, repo domain.Repository) ([]dom
 		return nil, fmt.Errorf("listing remotes in %s: %w", repo.Path, exitSummary(err, stderr))
 	}
 
-	return ParseRemotes(stdout), nil
+	remotes := ParseRemotes(stdout)
+	for i := range remotes {
+		remotes[i].DefaultBranch = r.defaultBranch(ctx, repo, remotes[i].Name)
+	}
+	return remotes, nil
+}
+
+// defaultBranch resolves refs/remotes/<remote>/HEAD. It is empty when the
+// symbolic ref is not available locally.
+func (r *Repository) defaultBranch(ctx context.Context, repo domain.Repository, remote string) string {
+	out, _, err := r.ex.Execute(ctx, repo.Path, "symbolic-ref", "--short", "refs/remotes/"+remote+"/HEAD")
+	if err != nil {
+		return ""
+	}
+	branch := strings.TrimSpace(string(out))
+	return strings.TrimPrefix(branch, remote+"/")
 }
 
 // ParseRemotes parses `git remote -v` output.

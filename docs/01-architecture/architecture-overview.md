@@ -35,9 +35,12 @@ that do not pay for themselves.
                     │ implements ports
 ┌───────────────────┴───────────────────────────┐
 │ Infrastructure (internal/infra)               │
-│ Git CLI adapter · YAML config · Filesystem    │
+│ Git CLI · GitHub CLI · YAML config · Filesystem│
 └───────────────────────────────────────────────┘
 ```
+
+Forge operations are isolated behind `domain.ForgePort`; the v0.2 adapter delegates to the
+authenticated GitHub CLI. See [`forge-integration.md`](forge-integration.md).
 
 Note the direction: infrastructure depends on domain contracts. Domain knows nothing
 about Git commands, YAML, or Bubble Tea.

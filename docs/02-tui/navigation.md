@@ -154,7 +154,8 @@ workspace or configuration reload), selection moves to the nearest remaining row
 
 Rules:
 
-- Automatic refresh never runs while a prompt, confirmation, help, or overlay is open.
+- Automatic refresh never runs while a prompt, pull request form, confirmation, help, or
+  overlay is open.
 - Automatic refresh never runs while a write is in flight or a refresh is already running.
 - Automatic refresh never changes the selection.
 - Background refresh is silent when a snapshot already exists: it does not replace loaded

@@ -83,8 +83,9 @@ func (m *Model) repositoryActions() [][2]string {
 	case tabBranches:
 		actions = [][2]string{
 			{"n", "New"},
-			{"Enter", "Checkout"},
-			{"d", "Delete"},
+			{"Enter", "Switch"},
+			{"o", "PR"},
+			{"d", "Del"},
 			{"f", "Fetch"},
 			{"p", "Pull"},
 			{"P", "Push"},

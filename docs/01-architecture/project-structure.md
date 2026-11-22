@@ -35,6 +35,7 @@ Repora/
 │   │   ├── config_store.go      ConfigStore port and deep clone
 │   │   ├── state.go             repository state and classification
 │   │   ├── history.go           branches, commits, remotes, diff targets
+│   │   ├── pull_request.go      PR types, validation, ForgePort
 │   │   ├── git.go               GitPort contract
 │   │   ├── git_write.go         GitWriter contract
 │   │   ├── validate.go          branch and message validation
@@ -45,6 +46,7 @@ Repora/
 │   │   ├── repository_service.go detail loading, registration
 │   │   ├── workspace_service.go workspace CRUD and associations
 │   │   ├── git_service.go       write operations with validation
+│   │   ├── pull_request_service.go PR validation and forge delegation
 │   │   ├── lock.go              per-repository channel locks
 │   │   └── errors.go            (planned) error translation
 │   │
@@ -60,12 +62,15 @@ Repora/
 │   │   │   ├── diff.go          working tree, staged, and commit diffs
 │   │   │   ├── write.go         stage, commit, branch, fetch, pull, push
 │   │   │   └── errors.go        ExitError and sentinels
-│   │   └── config/
-│   │       ├── path.go          path resolution and ~ expansion
-│   │       ├── store.go         load, validate, warnings
-│   │       ├── save.go          merge and write with unknown-field preservation
-│   │       ├── file_store.go    ConfigStore implementation
-│   │       └── atomic.go        crash-safe writes
+│   │   ├── config/
+│   │   │   ├── path.go          path resolution and ~ expansion
+│   │   │   ├── store.go         load, validate, warnings
+│   │   │   ├── save.go          merge and write with unknown-field preservation
+│   │   │   ├── file_store.go    ConfigStore implementation
+│   │   │   └── atomic.go        crash-safe writes
+│   │   └── github/
+│   │       ├── remote.go        GitHub remote URL parser
+│   │       └── client.go        gh CLI runner and ForgePort implementation
 │   │
 │   └── tui/
 │       ├── model.go             root model and refresh lifecycle
@@ -74,6 +79,7 @@ Repora/
 │       ├── repository.go        repository screen state and keys
 │       ├── repository_view.go   repository tabs, overlays
 │       ├── prompt.go            text prompts and write commands
+│       ├── pull_request.go      pull request form and rendering
 │       ├── confirm.go           destructive-action confirmations
 │       ├── config_commands.go   workspace CRUD commands
 │       ├── config_editor.go     $EDITOR integration and reload
@@ -160,6 +166,7 @@ Services:
 | `RepositoryService` | Register, unregister, validate, list |
 | `StatusService` | Refresh one or many repositories, generation tracking, pool |
 | `GitService` | Writes: fetch, pull, push, branch ops, stage, unstage, commit |
+| `PullRequestService` | Validate head/base refs and delegate PR creation to the forge |
 | `Lock` | Per-repository lock registry |
 
 Rules:
@@ -179,6 +186,12 @@ Rules:
 - Implements `domain.ConfigStore`.
 - Owns YAML mapping, path expansion, atomic writes, and unknown-field merging.
 - Never exposes `yaml.Node` outside the package.
+
+### `internal/infra/github`
+
+- Implements `domain.ForgePort`.
+- Parses GitHub remote URLs and runs `gh api` with an argument vector and JSON on stdin.
+- Never reads, stores, or logs credentials; authentication belongs to the GitHub CLI.
 
 ### `internal/infra/fsutil`
 

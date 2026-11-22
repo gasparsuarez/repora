@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -177,6 +178,27 @@ func (m *Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Batch(cmds...)
 
+	case pullRequestDoneMsg:
+		m.setRowBusy(msg.repoID, "")
+		if !m.prForm.active || msg.gen != m.prForm.gen {
+			return m, nil
+		}
+		m.prForm.loading = false
+		m.prForm.cancel = nil
+		if msg.err != nil {
+			m.prForm.err = msg.err
+			hint := app.Explain(msg.err)
+			m.errDetail = msg.err.Error()
+			if hint != "" {
+				m.errDetail += "\n\nHint: " + hint
+			}
+			return m, nil
+		}
+		m.prForm = newPullRequestForm()
+		m.notice = fmt.Sprintf("PR #%d created · %s", msg.pr.Number, msg.pr.URL)
+		m.noticeError = false
+		return m, nil
+
 	case configChangedMsg:
 		if msg.err != nil {
 			m.errDetail = msg.err.Error()
@@ -226,6 +248,10 @@ func (m *Model) wait() tea.Cmd {
 
 func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 	key := msg.String()
+
+	if m.prForm.active {
+		return m.handlePullRequestKey(msg)
+	}
 
 	// Ctrl+C is global: first press cancels work, a second press quits.
 	if key == "ctrl+c" {

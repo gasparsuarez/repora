@@ -418,9 +418,20 @@ git --no-pager show --no-color --no-ext-diff --stat <hash>          # commit sum
 
 ```bash
 git remote -v
+git symbolic-ref --short refs/remotes/<remote>/HEAD   # default branch, optional
 ```
 
-Parsed into name/fetch/push entries. Displayed read-only in v0.1.
+Parsed into name/fetch/push entries plus the remote's default branch. Displayed
+read-only; the default branch pre-selects the pull request base.
+
+### Refs
+
+```bash
+git rev-parse --verify --quiet <ref>
+```
+
+`RefOID` resolves `refs/heads/<branch>` and `refs/remotes/<remote>/<branch>` so pull
+request creation can require the local and remote heads to match exactly.
 
 ---
 

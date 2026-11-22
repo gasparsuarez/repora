@@ -36,30 +36,32 @@ type repoRow struct {
 
 // Deps are the dependencies required to build the root model.
 type Deps struct {
-	Config     *domain.Config
-	ConfigPath string
-	Version    string
-	Status     *app.StatusService
-	Repos      *app.RepositoryService
-	Git        *app.GitService
-	Workspaces *app.WorkspaceService
-	Warnings   []string
-	NoColor    bool
-	Reload     Reloader
+	Config       *domain.Config
+	ConfigPath   string
+	Version      string
+	Status       *app.StatusService
+	Repos        *app.RepositoryService
+	Git          *app.GitService
+	PullRequests PullRequestCreator
+	Workspaces   *app.WorkspaceService
+	Warnings     []string
+	NoColor      bool
+	Reload       Reloader
 }
 
 // Model is the root Bubble Tea model.
 type Model struct {
-	cfg        *domain.Config
-	configPath string
-	version    string
-	status     *app.StatusService
-	repos      *app.RepositoryService
-	git        *app.GitService
-	workspaces *app.WorkspaceService
-	warnings   []string
-	reload     Reloader
-	st         styles
+	cfg          *domain.Config
+	configPath   string
+	version      string
+	status       *app.StatusService
+	repos        *app.RepositoryService
+	git          *app.GitService
+	pullRequests PullRequestCreator
+	workspaces   *app.WorkspaceService
+	warnings     []string
+	reload       Reloader
+	st           styles
 
 	screen   screen
 	wsIndex  int
@@ -105,6 +107,7 @@ type Model struct {
 	tick func(time.Duration, func(time.Time) tea.Msg) tea.Cmd
 
 	prompt    promptState
+	prForm    pullRequestForm
 	confirm   confirmState
 	errDetail string
 	errOpen   bool
@@ -120,20 +123,21 @@ type Model struct {
 // New builds the root model.
 func New(deps Deps) *Model {
 	return &Model{
-		cfg:        deps.Config,
-		configPath: deps.ConfigPath,
-		version:    deps.Version,
-		status:     deps.Status,
-		repos:      deps.Repos,
-		git:        deps.Git,
-		workspaces: deps.Workspaces,
-		warnings:   deps.Warnings,
-		reload:     deps.Reload,
-		st:         newStyles(deps.NoColor),
-		screen:     screenHome,
-		prompt:     newPrompt(),
-		tick:       tea.Tick,
-		repoSeq:    make(map[domain.RepositoryID]int),
+		cfg:          deps.Config,
+		configPath:   deps.ConfigPath,
+		version:      deps.Version,
+		status:       deps.Status,
+		repos:        deps.Repos,
+		git:          deps.Git,
+		pullRequests: deps.PullRequests,
+		workspaces:   deps.Workspaces,
+		warnings:     deps.Warnings,
+		reload:       deps.Reload,
+		st:           newStyles(deps.NoColor),
+		screen:       screenHome,
+		prompt:       newPrompt(),
+		tick:         tea.Tick,
+		repoSeq:      make(map[domain.RepositoryID]int),
 	}
 }
 
@@ -176,7 +180,7 @@ func (m *Model) scheduleRefresh() tea.Cmd {
 // runs while a modal is open, a write is in flight, or a refresh is already
 // running, and it never changes the selection.
 func (m *Model) autoRefresh() tea.Cmd {
-	if m.prompt.active() || m.confirm.active || m.errOpen || m.showHelp || m.diffOpen || m.commitOpen {
+	if m.prompt.active() || m.prForm.active || m.confirm.active || m.errOpen || m.showHelp || m.diffOpen || m.commitOpen {
 		return nil
 	}
 	if m.anyRepoBusy() {
@@ -255,6 +259,7 @@ func (m *Model) rebuildRowsAndRefresh() tea.Cmd {
 // closeWorkspace cancels any in-flight refresh and returns home.
 func (m *Model) closeWorkspace() {
 	m.mergeRowsIntoHome()
+	m.discardPullRequestForm()
 
 	if m.cancel != nil {
 		m.cancel()

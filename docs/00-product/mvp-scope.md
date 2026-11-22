@@ -116,7 +116,8 @@ The MVP is delivered by phases 01, 02, and 03, plus the minimal packaging work i
 | Cherry-pick | v0.3 |
 | Stash manager | v0.3 |
 | Advanced conflict resolution | v0.3 |
-| GitHub / GitLab / Bitbucket integrations | v1.0+ |
+| GitHub pull request creation | v0.2 |
+| GitLab / Bitbucket integrations | v1.0+ |
 | Remote repository creation | Not planned |
 | Terminal multiplexer | Not planned |
 | Workspace templates | v1.0 |
@@ -143,6 +144,9 @@ were deliberately reduced, with rationale:
 4. **Diff is read-only and paged.** No hunk staging, no side-by-side, no inline editing.
 5. **No remote management UI.** Remotes are displayed read-only; adding/removing remotes
    is a shell task in v0.1.
+6. **GitHub pull request creation moves to v0.2.** It is a single, explicit write behind a
+   provider port and uses the authenticated GitHub CLI. GitLab, Bitbucket, forks, and PR
+   listing remain later work.
 
 ---
 
