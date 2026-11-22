@@ -45,6 +45,37 @@ func TestLoadCreatesDefault(t *testing.T) {
 	}
 }
 
+func TestLoadRefreshIntervalDefaultAndExplicitZero(t *testing.T) {
+	dir := t.TempDir()
+
+	withoutKey := writeConfig(t, dir, `version: 1
+repositories: []
+workspaces: []
+`)
+	cfg, _, err := Load(withoutKey)
+	if err != nil {
+		t.Fatalf("Load without key: %v", err)
+	}
+	if got := cfg.Preferences.RefreshIntervalSeconds(); got != domain.DefaultRefreshInterval {
+		t.Errorf("interval = %d, want default %d", got, domain.DefaultRefreshInterval)
+	}
+
+	dir = t.TempDir()
+	withZero := writeConfig(t, dir, `version: 1
+repositories: []
+workspaces: []
+preferences:
+  refresh_interval: 0
+`)
+	cfg, _, err = Load(withZero)
+	if err != nil {
+		t.Fatalf("Load with explicit zero: %v", err)
+	}
+	if got := cfg.Preferences.RefreshIntervalSeconds(); got != 0 {
+		t.Errorf("interval = %d, want 0 to disable", got)
+	}
+}
+
 func TestLoadValidAndExpandsHome(t *testing.T) {
 	dir := t.TempDir()
 	home, err := os.UserHomeDir()

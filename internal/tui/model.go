@@ -88,9 +88,11 @@ type Model struct {
 	commitLoading bool
 	commitScroll  int
 
-	gen    int
-	ch     chan tea.Msg
-	cancel context.CancelFunc
+	gen            int
+	ch             chan tea.Msg
+	cancel         context.CancelFunc
+	repoSeq        map[domain.RepositoryID]int
+	refreshTickSeq int
 
 	homeStates  map[domain.RepositoryID]domain.RepositoryState
 	homeLoaded  bool
@@ -131,13 +133,75 @@ func New(deps Deps) *Model {
 		screen:     screenHome,
 		prompt:     newPrompt(),
 		tick:       tea.Tick,
+		repoSeq:    make(map[domain.RepositoryID]int),
 	}
 }
 
 // Init implements tea.Model. It loads the workspace summaries shown on the
-// explorer; the refresh is read-only and bounded.
+// explorer and starts the automatic refresh loop. Both are read-only and
+// bounded.
 func (m *Model) Init() tea.Cmd {
-	return m.loadHomeSummaries()
+	return tea.Batch(m.loadHomeSummaries(), m.scheduleRefresh())
+}
+
+// refreshInterval returns the configured automatic refresh interval, or zero
+// when automatic refresh is disabled.
+func (m *Model) refreshInterval() time.Duration {
+	if m.cfg == nil {
+		return 0
+	}
+	seconds := m.cfg.Preferences.RefreshIntervalSeconds()
+	if seconds <= 0 {
+		return 0
+	}
+	return time.Duration(seconds) * time.Second
+}
+
+// scheduleRefresh arms the next automatic refresh tick. The sequence number
+// invalidates a pending tick when the configuration changes.
+func (m *Model) scheduleRefresh() tea.Cmd {
+	m.refreshTickSeq++
+	seq := m.refreshTickSeq
+
+	interval := m.refreshInterval()
+	if interval <= 0 || m.tick == nil {
+		return nil
+	}
+	return m.tick(interval, func(time.Time) tea.Msg {
+		return refreshTickMsg{seq: seq}
+	})
+}
+
+// autoRefresh performs one automatic refresh for the visible screen. It never
+// runs while a modal is open, a write is in flight, or a refresh is already
+// running, and it never changes the selection.
+func (m *Model) autoRefresh() tea.Cmd {
+	if m.prompt.active() || m.confirm.active || m.errOpen || m.showHelp || m.diffOpen || m.commitOpen {
+		return nil
+	}
+	if m.anyRepoBusy() {
+		return nil
+	}
+
+	switch m.screen {
+	case screenHome:
+		if m.homeLoading {
+			return nil
+		}
+		return m.loadHomeSummaries()
+	case screenWorkspace:
+		if m.cancel != nil {
+			return nil
+		}
+		return m.startRefreshQuiet()
+	case screenRepository:
+		row := m.currentRow()
+		if row == nil || row.unavailable || row.loading || m.detailLoading {
+			return nil
+		}
+		return tea.Batch(m.refreshRepoIDQuiet(row.repo.ID), m.loadDetail())
+	}
+	return nil
 }
 
 // openWorkspace switches to the dashboard of the selected workspace.
@@ -205,12 +269,31 @@ func (m *Model) closeWorkspace() {
 }
 
 func (m *Model) startRefresh() tea.Cmd {
+	return m.startRefreshMode(true)
+}
+
+// startRefreshQuiet refreshes without replacing a known state with a spinner.
+// It is used by the automatic refresh loop so background work does not flicker.
+func (m *Model) startRefreshQuiet() tea.Cmd {
+	return m.startRefreshMode(false)
+}
+
+func (m *Model) startRefreshMode(markLoading bool) tea.Cmd {
+	svc := m.status
+	if svc == nil {
+		return nil
+	}
+
 	repos := make([]domain.Repository, 0, len(m.rows))
+	seqByID := make(map[domain.RepositoryID]int, len(m.rows))
 	for i := range m.rows {
 		if m.rows[i].unavailable {
 			continue
 		}
-		m.rows[i].loading = true
+		if markLoading || m.rows[i].state.RepositoryID == "" {
+			m.rows[i].loading = true
+		}
+		seqByID[m.rows[i].repo.ID] = m.nextRepoSeq(m.rows[i].repo.ID)
 		repos = append(repos, m.rows[i].repo)
 	}
 	if len(repos) == 0 {
@@ -228,16 +311,12 @@ func (m *Model) startRefresh() tea.Cmd {
 
 	ch := make(chan tea.Msg)
 	m.ch = ch
-	svc := m.status
-	if svc == nil {
-		return nil
-	}
 
 	start := func() tea.Msg {
 		go func() {
 			svc.Refresh(ctx, repos, func(state domain.RepositoryState) {
 				select {
-				case ch <- statusMsg{gen: gen, state: state}:
+				case ch <- statusMsg{gen: gen, seq: seqByID[state.RepositoryID], state: state}:
 				case <-ctx.Done():
 				}
 			})
@@ -251,6 +330,21 @@ func (m *Model) startRefresh() tea.Cmd {
 	}
 
 	return tea.Batch(start, waitFor(ch))
+}
+
+// nextRepoSeq returns a monotonically increasing request id for a repository.
+// Status results carrying an older id are discarded, so a slow snapshot can
+// never overwrite a newer one.
+func (m *Model) nextRepoSeq(id domain.RepositoryID) int {
+	if m.repoSeq == nil {
+		m.repoSeq = make(map[domain.RepositoryID]int)
+	}
+	m.repoSeq[id]++
+	return m.repoSeq[id]
+}
+
+func (m *Model) repoSeqCurrent(id domain.RepositoryID, seq int) bool {
+	return seq != 0 && m.repoSeq[id] == seq
 }
 
 func waitFor(ch <-chan tea.Msg) tea.Cmd {
@@ -270,8 +364,35 @@ func (m *Model) applyStatus(state domain.RepositoryState) {
 		}
 		m.rows[i].state = state
 		m.rows[i].loading = false
+		if m.rows[i].busy && m.rows[i].busyLabel == busyRefreshing {
+			m.rows[i].busy = false
+			m.rows[i].busyLabel = ""
+		}
+		if m.screen == screenRepository && m.rowIndex == i {
+			m.setChanges(buildChanges(state))
+		}
 		return
 	}
+}
+
+// repoRowByID returns the row for a repository, if it is currently listed.
+func (m *Model) repoRowByID(id domain.RepositoryID) *repoRow {
+	for i := range m.rows {
+		if m.rows[i].repo.ID == id {
+			return &m.rows[i]
+		}
+	}
+	return nil
+}
+
+// anyRepoBusy reports whether a write or post-write refresh is in progress.
+func (m *Model) anyRepoBusy() bool {
+	for _, row := range m.rows {
+		if row.busy {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Model) loadingCount() int {

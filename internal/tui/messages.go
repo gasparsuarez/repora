@@ -5,10 +5,17 @@ import (
 	"github.com/gasparsuarez/repora/internal/domain"
 )
 
-// statusMsg carries one repository snapshot produced by a refresh.
+// statusMsg carries one repository snapshot produced by a refresh. seq is the
+// per-repository request id used to discard out-of-order results.
 type statusMsg struct {
 	gen   int
+	seq   int
 	state domain.RepositoryState
+}
+
+// refreshTickMsg fires when the automatic refresh interval elapses.
+type refreshTickMsg struct {
+	seq int
 }
 
 // homeStatusMsg carries one repository snapshot for the explorer.

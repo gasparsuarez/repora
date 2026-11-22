@@ -69,8 +69,14 @@ func (m *Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.homeCancel = nil
 		return m, m.waitHome()
 
+	case refreshTickMsg:
+		if msg.seq != m.refreshTickSeq {
+			return m, nil
+		}
+		return m, tea.Batch(m.autoRefresh(), m.scheduleRefresh())
+
 	case statusMsg:
-		if msg.gen != m.gen {
+		if !m.repoSeqCurrent(msg.state.RepositoryID, msg.seq) {
 			return m, nil
 		}
 		m.applyStatus(msg.state)
@@ -103,7 +109,7 @@ func (m *Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.cfg == nil {
 			return m, nil
 		}
-		return m, m.applyReload(msg.cfg, msg.warnings, msg.status)
+		return m, tea.Batch(m.applyReload(msg.cfg, msg.warnings, msg.status), m.scheduleRefresh())
 
 	case detailMsg:
 		if msg.gen != m.detailGen || m.screen != screenRepository {
@@ -112,11 +118,8 @@ func (m *Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if repo, ok := m.currentRepo(); !ok || repo.ID != msg.repoID {
 			return m, nil
 		}
-		m.detail = msg.detail
 		m.detailLoading = false
-		if row := m.currentRow(); row != nil {
-			m.changes = buildChanges(row.state)
-		}
+		m.applyDetail(msg.detail)
 		return m, nil
 
 	case commitDetailMsg:
@@ -142,7 +145,13 @@ func (m *Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case writeDoneMsg:
-		m.setRowBusy(msg.repoID, "")
+		// Keep the repository busy until the post-write status arrives, so a
+		// repeated key cannot act on the pre-write snapshot.
+		if m.status != nil {
+			m.setRowBusy(msg.repoID, busyRefreshing)
+		} else {
+			m.setRowBusy(msg.repoID, "")
+		}
 		if msg.err != nil {
 			hint := app.Explain(msg.err)
 			m.errDetail = msg.err.Error()
@@ -325,6 +334,14 @@ func (m *Model) handleHomeKey(key string) tea.Cmd {
 }
 
 func (m *Model) handleWorkspaceKey(key string) tea.Cmd {
+	if key == "f" || key == "p" || key == "P" {
+		if row := m.currentRow(); row != nil && row.busy {
+			m.notice = "operation in progress: " + row.busyLabel
+			m.noticeError = false
+			return nil
+		}
+	}
+
 	switch key {
 	case "esc":
 		m.closeWorkspace()

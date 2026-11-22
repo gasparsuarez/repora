@@ -143,19 +143,22 @@ workspace or configuration reload), selection moves to the nearest remaining row
 
 | Event | Refresh scope |
 |---|---|
-| App start, Home shown | Nothing (Home uses cached summaries) |
-| Home shown after returning | Workspace summaries if stale |
+| App start, Home shown | All workspace summaries |
+| Home shown after returning | Merged dashboard states, then the timer refreshes summaries |
 | Workspace opened | All repositories in the workspace |
-| Repository opened | That repository, if its snapshot is stale |
+| Repository opened | That repository and its detail sections |
 | Manual `r` | Current scope: workspace or repository |
-| After a write operation | The affected repository |
-| Timer (if `refresh_interval > 0`) | Current workspace, only while visible |
-| Config reload | Everything |
+| After a write operation | The affected repository, before input is unlocked |
+| Timer (if `refresh_interval > 0`) | The visible screen: Home, workspace, or repository |
+| Config reload | Everything; the timer is re-armed with the new interval |
 
 Rules:
 
-- Automatic refresh never runs while a modal is open.
+- Automatic refresh never runs while a prompt, confirmation, help, or overlay is open.
+- Automatic refresh never runs while a write is in flight or a refresh is already running.
 - Automatic refresh never changes the selection.
+- Background refresh is silent when a snapshot already exists: it does not replace loaded
+  rows with a spinner.
 - Automatic refresh is suspended when the terminal loses focus (optional; see below).
 
 ---
