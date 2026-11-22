@@ -30,6 +30,22 @@ checksum:
   name_template: SHA256SUMS
   algorithm: sha256
 
+homebrew_casks:
+  - name: repora
+    skip_upload: auto
+    repository:
+      owner: gasparsuarez
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: https://github.com/gasparsuarez/repora
+    description: Terminal-native multi-repository Git workspace manager
+    binaries:
+      - repora
+    hooks:
+      post:
+        install_steps: |
+          run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/repora"]
+
 changelog:
   use: github
   sort: asc

@@ -64,24 +64,59 @@ between both, and never move code on disk.
 
 ### Prebuilt binaries
 
-Each release ships binaries for macOS and Linux:
+Each release ships compressed archives for macOS and Linux plus `SHA256SUMS`:
 
 ```text
-repora_darwin_arm64
-repora_darwin_amd64
-repora_linux_amd64
-repora_linux_arm64
+repora_<version>_darwin_arm64.tar.gz
+repora_<version>_darwin_amd64.tar.gz
+repora_<version>_linux_amd64.tar.gz
+repora_<version>_linux_arm64.tar.gz
 SHA256SUMS
 ```
 
+Download the archive for your platform, verify its checksum, extract `repora`, and
+install it:
+
 ```bash
-shasum -a 256 -c SHA256SUMS        # sha256sum -c on Linux
+archive=repora_<version>_<os>_<arch>.tar.gz
+grep "$archive" SHA256SUMS | shasum -a 256 -c -   # sha256sum -c - on Linux
+tar -xzf "$archive"
 
 # User-local install (no sudo). Add ~/.local/bin to PATH if it is not already.
-install -m 0755 repora_$(uname -s | tr 'A-Z' 'a-z')_$(uname -m) ~/.local/bin/repora
+install -m 0755 repora ~/.local/bin/repora
 
 # Or system-wide:
-sudo install -m 0755 repora_$(uname -s | tr 'A-Z' 'a-z')_$(uname -m) /usr/local/bin/repora
+sudo install -m 0755 repora /usr/local/bin/repora
+```
+
+### Homebrew (macOS)
+
+Homebrew asks you to trust third-party taps explicitly:
+
+```bash
+brew trust gasparsuarez/tap
+brew install --cask gasparsuarez/tap/repora
+```
+
+Update with:
+
+```bash
+brew upgrade --cask repora
+```
+
+### Install script (macOS and Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gasparsuarez/repora/main/scripts/install.sh | sh
+```
+
+The script detects the platform, verifies `SHA256SUMS`, and installs to
+`~/.local/bin`. Re-run the same command to update. To pin a version or change the
+destination:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gasparsuarez/repora/main/scripts/install.sh |
+  sh -s -- --version v0.1.3 --dir ~/.local/bin
 ```
 
 ### From source
