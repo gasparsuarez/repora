@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Homebrew cask publishing for macOS. Install with
+  `brew install --cask gasparsuarez/tap/repora` and update with
+  `brew upgrade --cask repora`.
+- A cross-platform `scripts/install.sh` that detects the platform, verifies
+  `SHA256SUMS`, and installs or updates `~/.local/bin/repora`.
+
 ## [0.1.2] - 2026-11-18
 
 ### Changed
